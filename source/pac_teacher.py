@@ -11,6 +11,7 @@ from teacher import Teacher
 class PACTeacher(Teacher):
 
     def __init__(self, model: DFA, epsilon=0.001, delta=0.001):
+
         assert ((epsilon <= 1) & (delta <= 1))
         Teacher.__init__(self, model)
         self.epsilon = epsilon
@@ -84,19 +85,16 @@ class PACTeacher(Teacher):
     def teach(self, learner, timeout=600):
         self._num_equivalence_asked = 0
         learner.teacher = self
-        i = 0
+        i = 60
         start_time = time.time()
-        t100 = start_time
         while True:
             if time.time() - start_time > timeout:
-                print(time.time() - start_time)
+                print("Timeout")
                 return
-            i = i + 1
-            if i % 50 == 0:
-                print("this is the {}th round".format(i))
-                print("{} time has passed from the begging and {} from the last 100".format(time.time() - start_time,
-                                                                                            time.time() - t100))
-                t100 = time.time()
+            if time.time() - start_time > i:
+                i += 60
+                print("AAMC - {} time has passed from starting AAMC, DFA is currently of size {}".format(
+                    time.time() - start_time, len(learner.dfa.states)))
 
             counter = self.equivalence_query(learner.dfa)
             if counter is None:
@@ -108,11 +106,14 @@ class PACTeacher(Teacher):
         learner.teacher = self
         self._num_equivalence_asked = 0
         start_time = time.time()
-
+        i = 60
         while True:
             if time.time() - start_time > timeout:
                 return
-
+            if time.time() - start_time > i:
+                i += 60
+                print("PDV - {} time has passed from starting PDV, DFA is currently of size {}".format(
+                    time.time() - start_time, len(learner.dfa.states)))
             # Searching for counter examples in the spec:
             counter_example = checker.check_for_counterexample(learner.dfa)
 
@@ -123,7 +124,6 @@ class PACTeacher(Teacher):
                     if num > 1:
                         self._num_equivalence_asked += num - 1
                 else:
-                    print('found counter mistake in the model: ', counter_example)
                     return counter_example
 
             # Searching for counter examples in the the model:

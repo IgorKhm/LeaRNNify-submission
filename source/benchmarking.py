@@ -271,83 +271,101 @@ def check_rnn_acc_to_spec(rnn, spec, benchmark, timeout=900):
     # (dfa_extract_super, "dfa_extract_super")
 
 
-def check_rnn_acc_to_spec_only_mc(rnn, spec, benchmark, timeout=900):
-    teacher_pac = PACTeacher(rnn, epsilon=0.01, delta=0.01)
+def check_rnn_acc_to_spec_only_mc(rnn, spec, benchmark, timeout=900, delta=0.0005, epsilon=0.0005):
+    teacher_pac = PACTeacher(rnn, epsilon=epsilon, delta=delta)
     student = DecisionTreeLearner(teacher_pac)
 
-    print("Starting DFA extraction")
     ##################################################
-    # Doing the model checking during a DFA extraction
+    # Doing the model checking PDV
     ###################################################
-    print("Starting property-directed verification")
-    print("Starting property-directed verification")
-    print("-----------------------------------")
+    print("---------------------------------------------------\n"
+          "------Starting property-directed verification------\n"
+          "---------------------------------------------------\n")
+
     rnn.num_of_membership_queries = 0
     start_time = time.time()
     counter_extract_w_spec = teacher_pac.check_and_teach(student, spec[0], timeout=timeout)
-    benchmark.update({"during_time_spec": "{:.3}".format(time.time() - start_time)})
+    benchmark.update({"PDV_time": "{:.3}".format(time.time() - start_time)})
     dfa_extract_w_spec = student.dfa
     dfa_extract_w_spec = minimize_dfa(dfa_extract_w_spec)
 
     if counter_extract_w_spec is None:
-        print("No mistakes found ==> DFA learned:")
+        print("Using PDV no mistakes found")
+        print("DFA learned:")
         print(student.dfa)
-        benchmark.update({"extraction_mistake_during": "NAN",
-                          "dfa_extract_specs_states": len(dfa_extract_w_spec.states),
-                          "dfa_extract_specs_final": len(dfa_extract_w_spec.final_states),
-                          "dfa_extract_spec_mem_queries": rnn.num_of_membership_queries})
+        benchmark.update({"extraction_mistake_PDV": "NAN",
+                          "dfa_PDV_states": len(dfa_extract_w_spec.states),
+                          "dfa_PDV_final": len(dfa_extract_w_spec.final_states),
+                          "PDV_mem_queries": rnn.num_of_membership_queries})
     else:
-        print("Mistakes found ==> Counter example: {}".format(counter_extract_w_spec))
-        benchmark.update({"extraction_mistake_during": counter_extract_w_spec,
-                          "dfa_extract_specs_states": len(dfa_extract_w_spec.states),
-                          "dfa_extract_specs_final": len(dfa_extract_w_spec.final_states),
-                          "dfa_extract_spec_mem_queries": rnn.num_of_membership_queries})
+        print("Using PDV Mistakes found ==> Counter example: {}".format(counter_extract_w_spec))
+        print("DFA learned:")
+        print(student.dfa)
+        benchmark.update({"extraction_mistake_PDV": counter_extract_w_spec,
+                          "dfa_PDV_states": len(dfa_extract_w_spec.states),
+                          "dfa_PDV_final": len(dfa_extract_w_spec.final_states),
+                          "PDV_mem_queries": rnn.num_of_membership_queries})
+    print("Finished PDV in {} sec".format(benchmark["PDV_time"]))
 
-
-    print(benchmark)
-
-    print("Starting DFA extraction")
     ##################################################
-    # Doing the model checking during a DFA extraction
+    # Doing the model checking AAMC
     ###################################################
-    print("Starting Automaton Abstraction and Model Checking")
+    print("\n---------------------------------------------------\n"
+          "-Starting Automaton Abstraction and Model Checking-\n"
+          "---------------------------------------------------\n")
     rnn.num_of_membership_queries = 0
     start_time = time.time()
-    counter = teacher_pac.check_and_teach(student, spec[0])
-    benchmark.update({"during_time_spec": "{:.3}".format(time.time() - start_time)})
-    dfa_extract_w_spec = student.dfa
-    dfa_extract_w_spec = minimize_dfa(dfa_extract_w_spec)
+    student = DecisionTreeLearner(teacher_pac)
+    teacher_pac.teach(student, timeout=timeout)
 
+    counter = student.dfa.is_language_not_subset_of(spec[0].specification)
+    if counter is not None:
+        if not rnn.is_word_in(counter):
+            counter = None
+
+    benchmark.update({"time_AAMC": "{:.3}".format(time.time() - start_time)})
+
+    dfa_extract = minimize_dfa(student.dfa)
     if counter is None:
-        print("No mistakes found ==> DFA learned:")
+        print("Using AAMC no mistakes found ")
+        print("DFA learned:")
         print(student.dfa)
-        benchmark.update({"extraction_mistake_during": "NAN",
-                          "dfa_extract_specs_states": len(dfa_extract_w_spec.states),
-                          "dfa_extract_specs_final": len(dfa_extract_w_spec.final_states),
-                          "dfa_extract_spec_mem_queries": rnn.num_of_membership_queries})
+        benchmark.update({"extraction_mistake_AAMC": "NAN",
+                          "dfa_AAMC_states": len(dfa_extract.states),
+                          "dfa_AAMC_final": len(dfa_extract.final_states),
+                          "AAMC_mem_queries": rnn.num_of_membership_queries})
     else:
-        print("Mistakes found ==> Counter example: {}".format(counter))
-        benchmark.update({"extraction_mistake_during": counter,
-                          "dfa_extract_specs_states": len(dfa_extract_w_spec.states),
-                          "dfa_extract_specs_final": len(dfa_extract_w_spec.final_states),
-                          "dfa_extract_spec_mem_queries": rnn.num_of_membership_queries})
+        print("Using AAMC Mistakes found ==> Counter example: {}".format(counter))
+        print("DFA learned:")
+        print(student.dfa)
+        benchmark.update({"extraction_mistake_AAMC": counter,
+                          "dfa_AAMC_states": len(dfa_extract.states),
+                          "dfa_AAMC_final": len(dfa_extract.final_states),
+                          "AAMC_mem_queries": rnn.num_of_membership_queries})
 
-    print(benchmark)
+    print("Finished AAMC in {} sec".format(benchmark["time_AAMC"]))
 
     #################################################
     # Doing the model checking randomly
     ##################################################
-    print("starting Statistical Model Checking")
+    print("\n---------------------------------------------------\n"
+          "---------Starting Statistical Model Checking-------\n"
+          "---------------------------------------------------\n")
     rnn.num_of_membership_queries = 0
     start_time = time.time()
-    counter = model_check_random(rnn, spec[0].specification, width=0.005, confidence=0.005)
+    counter = model_check_random(rnn, spec[0].specification, width=epsilon, confidence=delta, timeout=timeout)
     if counter is None:
+        print("Using SMC no mistakes found")
         counter = "NAN"
-    benchmark.update({"mistake_time_rand": "{:.3}".format(time.time() - start_time),
-                      "mistake_rand": counter,
-                      "rand_num_queries": rnn.num_of_membership_queries})
+    else:
+        print("Using SMC Mistakes found ==> Counter example: {}".format(counter))
 
-    print(benchmark)
+    benchmark.update({"time_SMC": "{:.3}".format(time.time() - start_time),
+                      "mistake_SMC": counter,
+                      "SMC_num_queries": rnn.num_of_membership_queries})
+
+    print("Finished SMC in {} sec".format(benchmark["time_SMC"]))
+
     return dfa_extract_w_spec, counter_extract_w_spec
 
 
@@ -369,20 +387,6 @@ def extract_dfa_from_rnn(rnn, benchmark, timeout=900):
     benchmark.update({"dfa_extract_states": len(dfa_extract.states),
                       "dfa_extract_final": len(dfa_extract.final_states),
                       "num_of_mem_quarries_extracted": rnn.num_of_membership_queries})
-
-    # ###################################################
-    # # Doing DFA extraction acc. to icml18
-    # ###################################################
-    # print("Starting DFA extraction acc to iclm18")
-    # start_time = time.time()
-    #
-    # dfa_iclm18 = extract_iclm(rnn, time_limit=timeout, initial_split_depth=10)
-    #
-    # benchmark.update({"extraction_time_icml18": time.time() - start_time,
-    #                   "dfa_icml18_states": len(dfa_iclm18.Q),
-    #                   "dfa_icml18_final": len(dfa_iclm18.F)})
-    #
-    # print("Finished DFA extraction")
 
     return dfa_extract
 
@@ -411,19 +415,6 @@ def compute_distances(models, dfa_spec, benchmark, epsilon=0.005, delta=0.001):
         {"dist_specs_rnn": "{}".format(a),
          "dist_specs_extract_w_spec": "{}".format(b),
          "dist_specs_extract": "{}".format(c)})
-
-    print("Finished distance measuring")
-
-
-def compute_distances_no_model_checking(models, benchmark, epsilon=0.005, delta=0.001):
-    print("Starting distance measuring")
-    output, samples = confidence_interval_many(models, random_word, width=epsilon, confidence=delta)
-    print("The confidence interval for epsilon = {} , delta = {}".format(delta, epsilon))
-    print(output)
-
-    benchmark.update({"dist_rnn_vs_target": "{}".format(output[1][0]),
-                      "dist_rnn_vs_extr": "{}".format(output[1][2]),
-                      "dist_target_vs_extr": "{}".format(output[0][2])})
 
     print("Finished distance measuring")
 
@@ -497,19 +488,6 @@ def check_folder_of_rand(folder):
                     first_entry = False
                 write_line_csv(summary_csv, benchmark, benchmark.keys())
                 i += 1
-            # print(dfa.final_states)
-            # print(dfa)
-
-            # specs = tomita_1_check_languages()
-            # i = 0
-            # for spec in specs:
-            #     benchmark = {"name": "tomita1_" + str(i)}
-            #     check_rnn_acc_to_spec(rnn, [DFAChecker(spec)], benchmark, timeout)
-            #     if i == 0:
-            #         write_csv_header(summary_csv, benchmark.keys())
-            #     write_line_csv(summary_csv, benchmark, benchmark.keys())
-            #     i += 1
-            #
 
 
 def from_dfa_to_sup_dfa_gen(dfa: DFA, tries=5):
@@ -529,65 +507,6 @@ def from_dfa_to_sup_dfa_gen(dfa: DFA, tries=5):
             continue
         created_dfas.append(dfa_spec)
         yield dfa_spec
-
-
-def complition(folder):
-    timeout = 600
-    first_entry = True
-    summary_csv = folder + "/summary_fualty_flows_cross.csv"
-    for folder in os.walk(folder):
-        if os.path.isfile(folder[0] + "/meta"):
-            name = folder[0].split('/')[-1]
-            rnn = RNNLanguageClasifier().load_lstm(folder[0])
-            # dfa = load_dfa_dot(folder[0] + "/dfa.dot")
-            for file in os.listdir(folder[0]):
-                if 'spec_second_' in file:
-                    dfa_spec = load_dfa_dot(folder[0] + "/" + file)
-                    benchmark = {"name": name, "spec_num": file}
-                    dfa_extracted, counter = check_rnn_acc_to_spec_only_mc(rnn, [DFAChecker(dfa_spec)], benchmark,
-                                                                           timeout)
-                    if counter is not None:
-                        flawed_flows = []
-                        # flawed_flow_search(counter,dfa_spec,flawed_flows,rnn,dfa_spec)
-                        # flawed_flow_search(counter,dfa_extracted,flawed_flows,rnn,dfa_spec)
-                        flawed_flow_cross_product(counter, dfa_extracted, dfa_spec, flawed_flows, rnn)
-
-                        benchmark.update({"flawed_flows": flawed_flows})
-                    if first_entry:
-                        write_csv_header(summary_csv, benchmark.keys())
-                        first_entry = False
-                    write_line_csv(summary_csv, benchmark, benchmark.keys())
-
-
-def complition_smc(folder):
-    timeout = 600
-    first_entry = True
-    summary_csv = folder + "/summary_smc_2.csv"
-    for folder in os.walk(folder):
-        if os.path.isfile(folder[0] + "/meta"):
-            name = folder[0].split('/')[-1]
-            rnn = RNNLanguageClasifier().load_lstm(folder[0])
-            # dfa = load_dfa_dot(folder[0] + "/dfa.dot")
-            for file in os.listdir(folder[0]):
-                if 'spec_second_' in file:
-                    dfa_spec = load_dfa_dot(folder[0] + "/" + file)
-                    benchmark = {"name": name, "spec_num": file}
-                    print("starting rand model checking")
-                    rnn.num_of_membership_queries = 0
-                    start_time = time.time()
-                    counter = model_check_random(rnn, dfa_spec, width=0.0005, confidence=0.0005)
-                    if counter is None:
-                        counter = "NAN"
-                    benchmark.update({"mistake_time_rand": "{:.3}".format(time.time() - start_time),
-                                      "mistake_rand": counter,
-                                      "rand_num_queries": rnn.num_of_membership_queries})
-
-                    print(benchmark)
-
-                    if first_entry:
-                        write_csv_header(summary_csv, benchmark.keys())
-                        first_entry = False
-                    write_line_csv(summary_csv, benchmark, benchmark.keys())
 
 
 def flawed_flow_cross_product(counter, dfa_extracted, dfa_spec, flawed_flow, rnn):
@@ -628,42 +547,51 @@ def check_for_loops(prefix, loop, suffix, dfa_spec, rnn, flawed_flow):
         preword = preword + loop
     if count > 20:
         print("found faulty flow:")
-        print("prefix:{},\nloop:{},\nsuffix:{}".format(prefix, loop, suffix))
+        print("\t prefix:{},\n\t loop:{},\n\t suffix:{}".format(prefix, loop, suffix))
         flawed_flow.append((prefix, loop, suffix, count))
         return True
     else:
         return False
 
 
-def rand_bench(check_flows=True, timeout=600):
+def rand_pregenerated_benchmarks(check_flows=True, timeout=600, delta=0.0005, epsilon=0.0005):
     print("Start random benchmarks")
-
     first_entry = True
     folder = "../models/rand"
     summary_csv = "../results/summary_rand_model_checking.csv"
-
+    i = 1
     for folder in os.walk(folder):
         if os.path.isfile(folder[0] + "/meta"):
             name = folder[0].split('/')[-1]
             print("Loading RNN in :\"{}\"".format(folder[0]))
             rnn = RNNLanguageClasifier().load_lstm(folder[0])
-
+            if i == 1:
+                i = 2
+                continue
             # Loads specification dfa in the folder and checks whether
             # the rnn is compliant.
             for file in os.listdir(folder[0]):
                 if 'spec_second_' in file:
-                    print("Checking spec :\"{}\"".format(folder[0]))
                     dfa_spec = load_dfa_dot(folder[0] + "/" + file)
                     benchmark = {"name": name, "spec_num": file}
+
+                    print("\n#####################################################\n"
+                          "# Starting verification according to PDV,AAMC and SMC\n"
+                          "# for the specification: {} \n".format(benchmark["spec_num"]) +
+                          "# with epsilon = {} and delta = {}   \n".format(epsilon, delta) +
+                          "#####################################################\n")
+
                     dfa_extracted, counter = check_rnn_acc_to_spec_only_mc(rnn, [DFAChecker(dfa_spec)], benchmark,
-                                                                           timeout)
+                                                                           timeout, epsilon=epsilon, delta=delta)
 
                     # if found mistake and needs to check for faulty flaws
                     # do the following:
                     if check_flows:
                         flawed_flows = []
                         if counter is not None:
-                            print("Checking for faulty flows: ")
+                            print("---------------------------------------------------\n"
+                                  "-------------Checking for faulty flows-------------\n"
+                                  "---------------------------------------------------\n")
                             flawed_flows = []
                             flawed_flow_cross_product(counter, dfa_extracted, dfa_spec, flawed_flows, rnn)
                         benchmark.update({"flawed_flows": flawed_flows})
@@ -672,3 +600,8 @@ def rand_bench(check_flows=True, timeout=600):
                         write_csv_header(summary_csv, benchmark.keys())
                         first_entry = False
                     write_line_csv(summary_csv, benchmark, benchmark.keys())
+
+                    print("\n#####################################################\n"
+                          "# Done - verification according to PDV,AAMC and SMC  \n"
+                          "# for the specification: {} \n".format(benchmark["spec_num"]) +
+                          "#####################################################\n")

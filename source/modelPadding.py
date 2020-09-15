@@ -24,7 +24,6 @@ class WordsDataset(Dataset):
 
 def teach(model, batch_size, train_loader, val_loader, device, lr=0.001, criterion=nn.BCELoss(),
           epochs=10, print_every=500):
-
     criterion = nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     counter = 0
@@ -63,35 +62,17 @@ def teach(model, batch_size, train_loader, val_loader, device, lr=0.001, criteri
         print("-------------------------------------------------------")
         print("-------------------------------------------------------")
         print("Starting Epoch {}/{}".format(i + 1, epochs))
-        # if 0 < last_loss - np.mean(val_losses) < 0.005:
-        #     lr = lr + 0.001
-        #     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
-        #     print("changed to learning rate: {}".format(lr))
-        # if (0.01 < last_loss - np.mean(val_losses)) & (lr != 0.005):
-        #     lr = 0.005
-        #     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
-        #     print("changed to learning rate: {}".format(lr))
-        #
         last_loss = np.mean(val_losses)
 
         model.train()
         for inputs, labels, inp_len in train_loader:
             counter += 1
-            # h = tuple([e.data for e in h])
-            # a,b = [x.clone() for x in inputs] ,[x.clone() for x in labels]
             inputs, labels = inputs.to(device), labels.to(device)
             model.zero_grad()
             output, _ = model(inputs, inp_len, h)
             loss = criterion(output.squeeze(), labels.float())
 
-            # batch_ce_loss = 0.0
-            # for i in range(output.size(0)):
-            #     j = output[i][inp_len[i] - 1]
-            #     ce_loss = cross_entropy(j, labels[i])
-            #     batch_ce_loss += ce_loss
-
             loss.backward()
-            # batch_ce_loss
             nn.utils.clip_grad_norm_(model.parameters(), clip)
             optimizer.step()
 
@@ -100,13 +81,8 @@ def teach(model, batch_size, train_loader, val_loader, device, lr=0.001, criteri
                 val_losses = []
                 model.eval()
                 for inp, lab, inp_len in val_loader:
-                    # val_h = tuple([each.data for each in val_h])
                     inp, lab = inp.to(device), lab.to(device)
                     out, _ = model(inp, inp_len, val_h)
-                    # batch_ce_loss = 0.0
-                    # for i in range(output.size(0)):
-                    #     ce_loss = cross_entropy(output[i][inp_len[i] - 1].squeeze(), labels[i])
-                    #     batch_ce_loss += ce_loss
                     val_loss = criterion(out.squeeze(), lab.float())
                     val_losses.append(val_loss.item())
 
@@ -161,14 +137,10 @@ def from_array_to_word(int2char, array):
 
 def pad_collate(batch):
     (xx, yy) = (zip(*batch))
-
     x_lens = [len(x) for x in xx]
-    # y_lens = [len(y) for y in yy]
-
     xx_pad = pad_sequence(xx, batch_first=True, padding_value=0)
-    # yy_pad = pad_sequence(yy, batch_first=True, padding_value=0)
 
-    return xx_pad, torch.tensor(yy), x_lens  # , y_lens
+    return xx_pad, torch.tensor(yy), x_lens
 
 
 def make_training_set(alphabet, target, num_of_exm_per_length=2000, max_length=50,
@@ -216,7 +188,6 @@ def make_training_set_sampler(alphabet, target, sampler, num_of_examples, batch_
 def create_words_set_sampler(alphabet, batch_size, int2char, char2int, target, sampler, num_of_examples):
     words_list = [np.array([char2int[l] for l in sampler(alphabet)]) for _ in range(int(num_of_examples))]
 
-
     round_num_batches = int(len(words_list) - len(words_list) % batch_size)
     words_list = words_list[:round_num_batches - 1]
     label_list = [target(from_array_to_word(int2char, w)) for w in words_list]
@@ -238,9 +209,6 @@ def create_words_set_sampler(alphabet, batch_size, int2char, char2int, target, s
         print("after: {:.3}".format(sum([int(not lab) for lab in label_list]) / len(words_list)))
 
     words_list = [w if len(w) != 0 else np.array([0]) for w in words_list]
-
-    # words_list.insert(0, np.array([0]))
-    # label_list.insert(0, target(""))
 
     return WordsDataset(words_list, label_list)
 
@@ -284,7 +252,7 @@ def add_examples_with_specific_label_sampler(alphabet, label_list, num_of_exampl
 
     while len(new_examples) < (0.05 * len(words_list)) and current_try < max_tries:
         words = set()
-        for _ in range(num_of_examples*5):
+        for _ in range(num_of_examples * 5):
             w = sampler(alphabet)
             if target(w) == label:
                 words.add(w)
@@ -362,16 +330,12 @@ class LSTM(nn.Module):
         out = self.sigmoid(out)
 
         out = out.view(batch_size, -1)
-        # outb = torch.tensor([out[i][output_lengths[i] - 1] for i in range(20)])
         output_lengths = (output_lengths - 1).to(self.device)
         outb = out.gather(1, output_lengths.view(-1, 1)).squeeze()
 
         return outb, hidden
 
     def init_hidden(self, batch_size):
-        # weight = next(self.parameters()).data
-        # hidden = (weight.new(self.n_layers, batch_size, self.hidden_dim).zero_().to(self.device),
-        #           weight.new(self.n_layers, batch_size, self.hidden_dim).zero_().to(self.device))
         hidden = (torch.zeros(self.n_layers, batch_size, self.hidden_dim).to(self.device),
                   torch.zeros(self.n_layers, batch_size, self.hidden_dim).to(self.device))
         return hidden
@@ -392,12 +356,12 @@ class RNNLanguageClasifier:
         self.extra_time = 0
         self.num_of_membership_queries = 0
 
-    def train_a_lstm(self, alphahbet, target, sampler, embedding_dim=10, hidden_dim=10, num_layers=2, batch_size=20,
+    def train_a_lstm(self, alphabet, target, sampler, embedding_dim=10, hidden_dim=10, num_layers=2, batch_size=20,
                      num_of_examples=5000, word_traning_length=40, epoch=20):
         self.word_traning_length = word_traning_length
-        self._char_to_int = {alphahbet[i]: i + 1 for i in range(len(alphahbet))}
+        self._char_to_int = {alphabet[i]: i + 1 for i in range(len(alphabet))}
         self._char_to_int.update({"": 0})
-        self.alphabet = alphahbet
+        self.alphabet = alphabet
 
         is_cuda = torch.cuda.is_available()
         if is_cuda:
@@ -407,11 +371,11 @@ class RNNLanguageClasifier:
             device = torch.device("cpu")
             print("GPU not available, CPU used")
 
-        self._rnn = LSTM(len(alphahbet) + 1, 1, embedding_dim, hidden_dim, num_layers, drop_prob=0.5,
+        self._rnn = LSTM(len(alphabet) + 1, 1, embedding_dim, hidden_dim, num_layers, drop_prob=0.5,
                          device=device)
         # make_training_set(alphahbet, target)
         train_loader, val_loader, test_loader = \
-            make_training_set_sampler(alphahbet, target, sampler, num_of_examples, batch_size)
+            make_training_set_sampler(alphabet, target, sampler, num_of_examples, batch_size)
 
         self.num_of_train, self.num_of_test = len(train_loader) * batch_size, len(test_loader) * batch_size
 
@@ -462,7 +426,8 @@ class RNNLanguageClasifier:
         if not os.path.isdir(dir_name):
             os.makedirs(dir_name)
         elif os.path.exists(dir_name + "/meta") & (not force_overwrite):
-            if input("there already exists a model in {}. Enter y if you want to overwrite it.".format(dir_name)) != "y":
+            if input(
+                    "there already exists a model in {}. Enter y if you want to overwrite it.".format(dir_name)) != "y":
                 return
         with open(dir_name + "/meta", "w+") as file:
             file.write("Metadata:\n")
@@ -555,4 +520,4 @@ class RNNLanguageClasifier:
     def from_list_to_state(self, list_state):
         hiden = torch.tensor([[list_state[self._rnn.hidden_dim:]]])
         cell = torch.tensor([[list_state[:self._rnn.hidden_dim]]])
-        return (hiden.to(self._rnn.device), cell.to(self._rnn.device))
+        return hiden.to(self._rnn.device), cell.to(self._rnn.device)
