@@ -639,7 +639,7 @@ def rand_bench(check_flows=True, timeout=600):
     print("Start random benchmarks")
 
     first_entry = True
-    folder = ["../models/rand"]
+    folder = "../models/rand"
     summary_csv = "../results/summary_rand_model_checking.csv"
 
     for folder in os.walk(folder):

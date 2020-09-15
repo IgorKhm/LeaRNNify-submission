@@ -453,7 +453,7 @@ class RNNLanguageClasifier:
         xx_pad = pad_sequence(words_torch, batch_first=True, padding_value=0).to(self._rnn.device)
 
         output, _ = self._rnn(xx_pad, x_lens, h)
-        return output
+        return output > 0.5
 
     def reset_current_to_init(self):
         self._current_state = self._rnn.init_hidden(1)

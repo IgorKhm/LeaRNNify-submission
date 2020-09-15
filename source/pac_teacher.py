@@ -1,13 +1,10 @@
 import time
-from collections import namedtuple
 
-import matplotlib.pyplot as plt
 import numpy as np
 
 from dfa import DFA
-from dfa_check import DFAChecker
 from modelPadding import RNNLanguageClasifier
-from random_words import random_word, confidence_interval_many, confidence_interval_many_for_reuse
+from random_words import random_word
 from teacher import Teacher
 
 
@@ -25,7 +22,6 @@ class PACTeacher(Teacher):
         self.prev_examples = {}
 
         self.is_counter_example_in_batches = isinstance(self.model, RNNLanguageClasifier)
-        print("counter example in batchs : " + str(self.is_counter_example_in_batches))
 
     def equivalence_query(self, dfa: DFA):
         """
@@ -33,10 +29,6 @@ class PACTeacher(Teacher):
         If not equivalent returns an example
         """
 
-        # if dfa.is_word_in("") != self.model.is_word_in(""):
-        #     return ""
-
-        # number_of_rounds0 = int((self._log_delta - self._num_equivalence_asked) / self._log_one_minus_epsilon)
         number_of_rounds = int(
             (1 / self.epsilon) * (np.log(1 / self.delta) + np.log(2) * (self._num_equivalence_asked + 1)))
 
@@ -46,7 +38,7 @@ class PACTeacher(Teacher):
             batch_size = 200
             for i in range(int(number_of_rounds / batch_size) + 1):
                 batch = [random_word(self.model.alphabet) for _ in range(batch_size)]
-                for x, y, w in zip(self.model.is_words_in_batch(batch) > 0.5, [dfa.is_word_in(w) for w in batch],
+                for x, y, w in zip(self.model.is_words_in_batch(batch), [dfa.is_word_in(w) for w in batch],
                                    batch):
                     if x != y:
                         return w

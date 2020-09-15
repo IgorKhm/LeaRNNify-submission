@@ -128,7 +128,7 @@ class DecisionTreeLearner(Learner):
         while True:
             answers = self.teacher.model.is_words_in_batch([words[x[1]] + x[0].name for x in current_nodes])
             if len(answers.shape) == 0:
-                if answers > 0.5:
+                if answers:
                     current_nodes[0][0] = current_nodes[0][0].right
                 else:
                     current_nodes[0][0] = current_nodes[0][0].left
@@ -139,7 +139,7 @@ class DecisionTreeLearner(Learner):
                     words_left = words_left - 1
             else:
                 for i in range(len(answers) - 1, -1, -1):
-                    if answers[i] > 0.5:
+                    if answers[i]:
                         current_nodes[i][0] = current_nodes[i][0].right
                     else:
                         current_nodes[i][0] = current_nodes[i][0].left

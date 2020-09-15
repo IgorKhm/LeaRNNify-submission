@@ -85,10 +85,10 @@ def confidence_interval_many(languages, sampler, confidence=0.001, width=0.005, 
                 if i % 50 == 0:
                     print("done {}/{}".format(i, num_of_batches))
                 batch = samples[i * batch_size:(i + 1) * batch_size]
-                batch_out = (lang.is_words_in_batch(batch) > 0.5)
+                batch_out = (lang.is_words_in_batch(batch))
                 rnn_bool_list.extend(batch_out)
             batch = samples[num_of_batches * batch_size:len(samples)]
-            batch_out = (lang.is_words_in_batch(batch) > 0.5)
+            batch_out = (lang.is_words_in_batch(batch))
             rnn_bool_list.extend(batch_out)
             in_langs_lists.append(rnn_bool_list)
 
@@ -185,10 +185,10 @@ def confidence_interval_many_for_reuse(languages, sampler, previous_answers=None
                     if i % 50 == 0:
                         print("done {}/{}".format(i, n))
                     batch = samples[i * batch_size:(i + 1) * batch_size]
-                    batch_out = (lang.is_words_in_batch(batch) > 0.5)
+                    batch_out = (lang.is_words_in_batch(batch))
                     rnn_bool_list.extend(batch_out)
                 batch = samples[n * batch_size:len(samples)]
-                batch_out = (lang.is_words_in_batch(batch) > 0.5)
+                batch_out = (lang.is_words_in_batch(batch) )
                 rnn_bool_list.extend(batch_out)
                 in_langs_lists.append(rnn_bool_list)
     else:
@@ -226,7 +226,7 @@ def model_check_random(language_inf, language_sup,  confidence=0.001, width=0.00
         if (time.time() -start_time > 600):
             return None
         batch = [random_word(alph) for _ in range(batch_size)]
-        for x, y, w in zip(language_inf.is_words_in_batch(batch) > 0.5, [language_sup.is_word_in(w) for w in batch],
+        for x, y, w in zip(language_inf.is_words_in_batch(batch) , [language_sup.is_word_in(w) for w in batch],
                            batch):
             if x and (not y):
                 # short_word = ""
