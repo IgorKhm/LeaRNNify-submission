@@ -1,0 +1,6 @@
+Metadata:
+alphabet = a,b,c,d,e
+embedding_dim = 10
+hidden_dim = 400
+n_layers = 3
+torch_save = state_dict.pt
