@@ -272,7 +272,7 @@ def rand_pregenerated_benchmarks(check_flows=True, timeout=600, delta=0.0005, ep
 
 def generate_rand_spec_and_check_them(folder=None, check_flows=True, timeout=600, delta=0.0005, epsilon=0.0005):
     first_entry = True
-    folder, creation_time = create_random_couples_of_dfa_rnn(save_dir=folder)
+    folder, creation_time = create_random_couples_of_dfa_rnn(save_dir=folder, num_of_bench=3)
     summary_csv = folder + "/results/summary_model_checking_{}.csv".format(creation_time)
     for folder in os.walk(folder):
         if os.path.isfile(folder[0] + "/meta"):
