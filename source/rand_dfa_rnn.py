@@ -59,11 +59,11 @@ def learn_dfa(dfa: DFA, benchmark, hidden_dim=-1, num_layers=-1, embedding_dim=-
     if embedding_dim == -1:
         embedding_dim = len(dfa.alphabet) * 2
     if epoch == -1:
-        epoch = 30
+        epoch = 10
     if batch_size == -1:
         batch_size = 20
     if num_of_examples == -1:
-        num_of_examples = 250000
+        num_of_examples = 100000
 
     start_time = time.time()
     model = RNNLanguageClasifier()
