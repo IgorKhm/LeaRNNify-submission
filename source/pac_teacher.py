@@ -36,6 +36,7 @@ class PACTeacher(Teacher):
         self._num_equivalence_asked = self._num_equivalence_asked + 1
 
         if isinstance(self.model, RNNLanguageClasifier):
+            print("batch")
             batch_size = 200
             for i in range(int(number_of_rounds / batch_size) + 1):
                 if time.time() - start_time > timeout:
@@ -65,6 +66,7 @@ class PACTeacher(Teacher):
         self._num_equivalence_asked = self._num_equivalence_asked + 1
 
         if isinstance(self.model, RNNLanguageClasifier):
+            print("batch")
             batch_size = 200
             for i in range(int(number_of_rounds / batch_size) + 1):
                 if time.time() - start_time > timeout:
