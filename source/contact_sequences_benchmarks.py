@@ -308,8 +308,8 @@ def check_contact_sequence_RNN():
 	dirs = ["scc2034_kilifi_all_contacts_across_households",
 		"tij_InVS",
 		"highschool_2011",
-		"detailed_list_of_contacts_Hospital"]
-	dirs =	["scc2034_kilifi_all_contacts_within_households",
+		"detailed_list_of_contacts_Hospital",
+		"scc2034_kilifi_all_contacts_within_households",
 		"tij_SFHH",
 		"tij_InVS15"]
 
