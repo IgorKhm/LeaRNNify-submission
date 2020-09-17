@@ -12,7 +12,7 @@ from exact_teacher import ExactTeacher
 from learner_decison_tree import DecisionTreeLearner
 from modelPadding import RNNLanguageClasifier
 from pac_teacher import PACTeacher
-from rand_dfa_rnn import create_random_couples_of_dfa_rnn
+from rand_dfa_rnn import create_random_couples_of_dfa_and_rnn
 from random_words import confidence_interval_many, random_word, confidence_interval_subset, model_check_random
 
 FIELD_NAMES = ["alph_len",
@@ -225,7 +225,10 @@ def rand_pregenerated_benchmarks(check_flows=True, timeout=600, delta=0.0005, ep
     print("Start random benchmarks")
     first_entry = True
     folder_main = "../models/rand"
+    if not os.path.isdir("../results/"):
+        os.makedirs("../results/")
     summary_csv = "../results/summary_rand_model_checking.csv"
+
     for folder in os.walk(folder_main):
         if os.path.isfile(folder[0] + "/meta"):
             name = folder[0].split('/')[-1]
@@ -272,8 +275,10 @@ def rand_pregenerated_benchmarks(check_flows=True, timeout=600, delta=0.0005, ep
 
 def generate_rand_spec_and_check_them(folder=None, check_flows=True, timeout=600, delta=0.0005, epsilon=0.0005):
     first_entry = True
-    folder, creation_time = create_random_couples_of_dfa_rnn(save_dir=folder, num_of_bench=3)
-    summary_csv = folder + "/results/summary_model_checking_{}.csv".format(creation_time)
+    folder, creation_time = create_random_couples_of_dfa_and_rnn(save_dir=folder, num_of_bench=3)
+    if not os.path.isdir("../results/"):
+        os.makedirs("../results/")
+    summary_csv = "../results/summary_model_checking_rand_{}.csv".format(creation_time)
     for folder in os.walk(folder):
         if os.path.isfile(folder[0] + "/meta"):
             name = folder[0].split('/')[-1]

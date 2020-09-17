@@ -124,19 +124,19 @@ def rand_benchmark(save_dir=None):
     return benchmark
 
 
-def create_random_couples_of_dfa_rnn(num_of_bench=10, save_dir=None):
+def create_random_couples_of_dfa_and_rnn(num_of_bench=10, save_dir=None):
     print("Running benchmark without model checking with " + str(num_of_bench) + " number of benchmarks")
     if save_dir is None:
         creation_time = datetime.datetime.now().strftime("%d-%b-%Y_%H-%M")
         save_dir = "../models/random_bench_{}".format(creation_time)
         os.makedirs(save_dir)
 
-    write_csv_header(save_dir + "/test.csv")
+    write_csv_header(save_dir + "/rnn_learning_summary.csv")
     for num in range(1, num_of_bench + 1):
         print("Running benchmark {}/{}:".format(num, num_of_bench))
         benchmark = rand_benchmark(save_dir + "/" + str(num))
         print("Summary for the {}th benchmark".format(num))
         print(benchmark)
-        write_line_csv(save_dir + "/test.csv", benchmark)
+        write_line_csv(save_dir + "/rnn_learning_summary.csv", benchmark)
 
-    return save_dir ,creation_time
+    return save_dir, creation_time
