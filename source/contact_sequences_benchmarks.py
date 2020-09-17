@@ -165,12 +165,12 @@ def verification_methods(rnn, spec_tuple, rnn_model_name, TO=600):
 			Model_Check_info.update({"Technique": "PDV"})
 			print("Performing PDV")
 			learn_and_check(rnn, spec_tuple, rnn_model_name, TO)
-		'''
+		
 		if method==2:
 			Model_Check_info.update({"Technique": "SMC"})
 			print("Performing SMC")
 			statistical_check(rnn, spec_tuple, rnn_model_name, TO)
-		'''
+	
 
 		write_line_csv("Model_Checking")
 		method+=1
@@ -371,7 +371,7 @@ def train_contact_sequence_RNN():
 							save_dir=data_dir)
 
 
-check_contact_sequence_RNN()
+
 '''
 if __name__ == "__main__":
 	main()
