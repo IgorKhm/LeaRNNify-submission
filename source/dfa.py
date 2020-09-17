@@ -334,6 +334,41 @@ def load_dfa_dot(filename: str) -> DFA:
                 t.update({split[2]: state_to})
     return DFA(initial_state, final_states, transitions)
 
+def load_dfa_dot_TN(filename):
+    mode = "init"
+    transitions = {}
+    states = []
+    final_states = []
+
+    with open(filename, "r") as file:
+        for line in file.readlines():
+            if mode == "init":
+                if "__start0" in line:
+                    mode = "states"
+                    continue
+            elif mode == "states":
+                # reading states:
+                if "__start0" in line:
+                    initial_state = line.split(" -> ")[1]
+                    initial_state = initial_state[:len(initial_state) - 1]
+                    mode = "transitions"
+                    continue
+                new_state = line.split(" ")[0]
+                transitions.update({new_state: {}})
+                states.append(new_state)
+                if "doublecircle" in line:
+                    final_states.append(new_state)
+            elif mode == "transitions":
+                if line == '}\n':
+                    break
+                line = line.replace(" -> ", ";")
+                line = line.replace('[label="', ";")
+                line = line.replace('"]\n', "")
+                split = line.split(";")
+                t = transitions[split[0]]
+                t.update({split[2]: split[1]})
+    return DFA(initial_state, final_states, transitions)
+
 
 def save_dfa_as_part_of_model(dir_name, dfa: DFA, name="dfa", force_overwrite=False):
     """

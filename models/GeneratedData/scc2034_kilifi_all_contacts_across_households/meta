@@ -1,0 +1,6 @@
+Metadata:
+alphabet = E23,F3,E2,L7,E4,F11,F12,F1,F9,F7,F10,E5,E9,E10,F5,E11,E15,E22,E25,E27,L1,E20,E17,E13,E6,L3,E30,E16
+embedding_dim = 10
+hidden_dim = 100
+n_layers = 2
+torch_save = state_dict.pt

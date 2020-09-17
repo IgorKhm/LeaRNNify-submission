@@ -14,6 +14,14 @@ def random_word(alphabet, p=0.01):
         word.append(alphabet[letter])
     return tuple(word)
 
+def random_nonempty_word(alphabet, p=0.01):
+    nums_of_letters = len(alphabet)
+    word = []
+    while np.random.randint(0, int(1 / p)) != 0 or len(word) == 0:
+        letter = np.random.randint(0, nums_of_letters)
+        word.append(alphabet[letter])
+    return tuple(word)
+
 
 def model_check_random(language_inf, language_sup, confidence=0.0005, width=0.0005,timeout = 600):
     """

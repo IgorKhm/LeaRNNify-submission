@@ -102,9 +102,9 @@ def teach(model, batch_size, train_loader, val_loader, device, lr=0.001, criteri
     return test_acc
 
 
-def test_rnn(model, test_loader, batch_size, device, criterion=nn.BCELoss()):
+def test_rnn(model, test_loader, batch_size, device, criterion=nn.BCELoss(), load_dir='.'):
     # Loading the best model
-    model.load_state_dict(torch.load('./state_dict.pt'))
+    model.load_state_dict(torch.load(load_dir+'/state_dict.pt'))
 
     test_losses = []
     num_correct = 0
@@ -388,6 +388,57 @@ class RNNLanguageClasifier:
         self.states = {
             str(self.from_state_to_list(self._rnn.init_hidden(1))): ""}
         return
+
+
+    def train_a_lstm_dataset(self, alphabet, train_data, test_data, embedding_dim=10, hidden_dim=10, num_layers=2, batch_size=20, epoch=20, save_dir = "."):
+
+        self.alphabet = alphabet
+        self._char_to_int = {self.alphabet[i]: i + 1 for i in range(len(self.alphabet))}
+        self._char_to_int.update({"": 0})
+        self.num_of_train = len(train_data.label_list)
+        self.num_of_test = len(test_data.label_list)
+
+        is_cuda = torch.cuda.is_available()
+        if is_cuda:
+            device = torch.device("cuda")
+            print("GPU is available")
+        else:
+            device = torch.device("cpu")
+            print("GPU not available, CPU used")
+        self._rnn = LSTM(len(self.alphabet) + 1, 1, embedding_dim, hidden_dim, num_layers, drop_prob=0.5,
+                          device=device)
+
+
+        train_word_list = [np.array([self._char_to_int[i] for i in word]) for word in train_data.word_list]
+        train_label_list = train_data.label_list
+
+        train = WordsDataset(train_word_list, train_label_list)
+        
+        train_loader = DataLoader(train, shuffle=True, batch_size=batch_size, collate_fn=pad_collate)
+        
+
+        val_length = int(((len(train)*0.4)//batch_size)*batch_size)
+        validation, _ = torch.utils.data.random_split(train, [val_length, len(train) - val_length])
+        val_loader = DataLoader(train, shuffle=True, batch_size=batch_size, collate_fn=pad_collate)
+        
+
+        
+        self.val_acc = teach(self._rnn, batch_size, train_loader, val_loader, device, epochs=epoch, print_every=2000)
+        self.save_lstm(dir_name=save_dir, force_overwrite=True)
+
+        self._initial_state = self._rnn.init_hidden(1)
+        self._current_state = self._initial_state
+
+        test_word_list = [np.array([self._char_to_int[i] for i in word]) for word in test_data.word_list]
+        test_label_list = test_data.label_list
+    
+        test = WordsDataset(test_word_list, test_label_list)
+        test_loader = DataLoader(test, shuffle=True, batch_size=batch_size, collate_fn=pad_collate)
+        
+        self.test_acc = test_rnn(self._rnn, test_loader, batch_size, device, load_dir=save_dir)
+
+        return
+
 
     def is_word_in(self, word):
         self.num_of_membership_queries += 1
