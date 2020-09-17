@@ -35,7 +35,7 @@ class PACTeacher(Teacher):
 
         self._num_equivalence_asked = self._num_equivalence_asked + 1
 
-        if self.is_counter_example_in_batches:
+        if isinstance(self.model, RNNLanguageClasifier):
             batch_size = 200
             for i in range(int(number_of_rounds / batch_size) + 1):
                 if time.time() - start_time > timeout:
