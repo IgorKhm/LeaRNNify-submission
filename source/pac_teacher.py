@@ -24,7 +24,7 @@ class PACTeacher(Teacher):
 
         self.is_counter_example_in_batches = isinstance(self.model, RNNLanguageClasifier)
 
-    def equivalence_query(self, dfa: DFA):
+    def equivalence_query(self, dfa: DFA,start_time, timeout):
         """
         Tests whether the dfa is equivalent to the model by testing random words.
         If not equivalent returns an example
@@ -38,6 +38,8 @@ class PACTeacher(Teacher):
         if self.is_counter_example_in_batches:
             batch_size = 200
             for i in range(int(number_of_rounds / batch_size) + 1):
+                if time.time() - start_time > timeout:
+                    return None
                 batch = [random_word(self.model.alphabet) for _ in range(batch_size)]
                 for x, y, w in zip(self.model.is_words_in_batch(batch), [dfa.is_word_in(w) for w in batch],
                                    batch):
@@ -52,7 +54,7 @@ class PACTeacher(Teacher):
                     return word
             return None
 
-    def model_subset_of_dfa_query(self, dfa: DFA):
+    def model_subset_of_dfa_query(self, dfa: DFA, start_time, timeout):
         """
         Tests whether the model language is a subset of the dfa language by testing random words.
         If not subset returns an example
@@ -65,6 +67,8 @@ class PACTeacher(Teacher):
         if isinstance(self.model, RNNLanguageClasifier):
             batch_size = 200
             for i in range(int(number_of_rounds / batch_size) + 1):
+                if time.time() - start_time > timeout:
+                    return None
                 batch = [random_word(self.model.alphabet) for _ in range(batch_size)]
                 for x, y, w in zip(self.model.is_words_in_batch(batch) > 0.5, [dfa.is_word_in(w) for w in batch],
                                    batch):
@@ -96,7 +100,7 @@ class PACTeacher(Teacher):
                 print("AAMC - {} time has passed from starting AAMC, DFA is currently of size {}".format(
                     time.time() - start_time, len(learner.dfa.states)))
 
-            counter = self.equivalence_query(learner.dfa)
+            counter = self.equivalence_query(learner.dfa,start_time, timeout)
             if counter is None:
                 break
             num_of_ref = learner.new_counterexample(counter, self.is_counter_example_in_batches)
@@ -129,7 +133,7 @@ class PACTeacher(Teacher):
             # Searching for counter examples in the the model:
             else:
 
-                counter_example = self.model_subset_of_dfa_query(learner.dfa)
+                counter_example = self.model_subset_of_dfa_query(learner.dfa, start_time, timeout)
                 if counter_example is None:
                     return None
                 else:
